@@ -1,7 +1,9 @@
-package checkers.gui;
+package checkers.gui.panels;
 
+import checkers.gui.GUI;
 import checkers.gui.board.GameBoard;
 import checkers.gui.shapes.Counter;
+import checkers.gui.shapes.Square;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,6 +16,8 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     private GameBoard gameBoard;
 
     private int selectedCounter = -1;
+    private int selectedCounterX;
+    private int selectedCounterY;
 
     public GamePanel() {
         setPreferredSize(new Dimension(GUI.WIDTH, GUI.HEIGHT));
@@ -45,6 +49,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     @Override
     public void mousePressed(MouseEvent e) {
         Point p = e.getPoint();
+
         Counter[] counters = gameBoard.getCounters();
 
         if (selectedCounter == -1) {
@@ -53,13 +58,46 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
                 if (counters[i].contains(p)) {
                     selectedCounter = i;
                     counters[i].isSelected = true;
+
+                    selectedCounterX = (int) counters[i].x;
+                    selectedCounterY = (int) counters[i].y;
                 }
             }
         } else {
             // Unselect a counter
             counters[selectedCounter].isSelected = false;
+            System.out.println("Is move valid: " + checkMove(p, counters, selectedCounter));
             selectedCounter = -1;
         }
+    }
+
+    private boolean checkMove(Point p, Counter[] counters, int selectedCounter) {
+        Square[][] tiles = gameBoard.getBoardTiles();
+        int[] selectedTile = { -1, -1 };
+
+        boolean isValid = false;
+        for (int y0 = 0; y0 < 8; y0++) {
+            for (int x0 = 0; x0 < 8; x0++) {
+                if (tiles[y0][x0].contains(p) && tiles[y0][x0].isBlack) {
+                    selectedTile[0] = y0;
+                    selectedTile[1] = x0;
+                    isValid = true;
+                    break;
+                }
+            }
+        }
+
+        // Snap counter to centre of tile.
+        if (isValid) {
+            counters[selectedCounter].x = tiles[selectedTile[0]][selectedTile[1]].x;
+            counters[selectedCounter].y = tiles[selectedTile[0]][selectedTile[1]].y;
+        } else {
+            // Move counter back to original location.
+            counters[selectedCounter].x = selectedCounterX;
+            counters[selectedCounter].y = selectedCounterY;
+        }
+
+        return isValid;
     }
 
     @Override

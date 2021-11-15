@@ -27,7 +27,7 @@ public class GameBoard {
         int x = 0;
         int y = 600 - 75;
         for (int i = 0; i < playerCounters.length; i++) {
-            playerCounters[i] = new Counter(x, y, 75, 75);
+            playerCounters[i] = new Counter(x, y);
             x += 150;
 
             if (i == 3) {
@@ -41,6 +41,22 @@ public class GameBoard {
     }
 
     private void createAICounters() {
+        AICounters = new Counter[12];
+
+        int x = 0;
+        int y = 0;
+        for (int i = 0; i < playerCounters.length; i++) {
+            AICounters[i] = new Counter(x, y);
+            x += 150;
+
+            if (i == 3) {
+                y -= 75;
+                x = 75;
+            } else if (i == 7) {
+                y -= 75;
+                x = 0;
+            }
+        }
     }
 
     /**
@@ -58,26 +74,13 @@ public class GameBoard {
                 boardTiles[y0][x0] = new Square(x, y, 75, 75);
 
                 // Set the tiles colour
-                if (toggle == 0) {
-                    boardTiles[y0][x0].setColor(Color.white);
-                    toggle = 1;
-                }
-                else {
-                    boardTiles[y0][x0].setColor(Color.black);
-                    toggle = 0;
-                }
-
+                if ((x0 + y0) % 2 == 0) boardTiles[y0][x0].setColor(Color.white);
+                else boardTiles[y0][x0].setColor(Color.black);
                 x += 75;
             }
-
-            if (toggle == 0)
-                toggle = 1;
-            else
-                toggle = 0;
             x = 0;
             y += 75;
         }
-
         boardCreated = true;
     }
 
@@ -108,4 +111,5 @@ public class GameBoard {
     public Counter[] getCounters() {
         return playerCounters;
     }
+    public Square[][] getBoardTiles() { return boardTiles; }
 }

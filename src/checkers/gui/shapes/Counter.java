@@ -11,7 +11,12 @@ public class Counter extends Ellipse2D.Double {
 
     public Counter(int x, int y, int width, int height) {
         super(x, y, width, height);
+        isSelected = false;
+        isKing = false;
+    }
 
+    public Counter(int x, int y) {
+        super(x, y, 75, 75);
         isSelected = false;
         isKing = false;
     }
