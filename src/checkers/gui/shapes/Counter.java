@@ -23,13 +23,10 @@ public class Counter extends Ellipse2D.Double {
         this.height = 75;
         isKing = false;
 
-        // TODO - This probably needs to be based on who goes first?
         if (isAI)
             yDir = 1;
         else
             yDir = -1;
-
-        System.out.println("Counter created - " + this);
     }
 
     public void setColor(Color color) {
@@ -50,13 +47,14 @@ public class Counter extends Ellipse2D.Double {
     public boolean getIsKing() {
         return isKing;
     }
+    public boolean getIsAI() { return isAI; };
 
     public void setIsKing(boolean isKing) {
         this.isKing = isKing;
         yDir = 0;
     }
 
-    public int getyDir() {
+    public int getYDir() {
         return yDir;
     }
 

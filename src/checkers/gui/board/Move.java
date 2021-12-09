@@ -66,6 +66,6 @@ public class Move {
 
     @Override
     public String toString() {
-        return "boardX: " + boardX + ", boardY: " + boardY + ", isCaptureMove: " + isCaptureMove;
+        return "boardX: " + boardX + ", boardY: " + boardY + ", isCaptureMove: " + isCaptureMove + ", isAI: " + counter.isAI;
     }
 }

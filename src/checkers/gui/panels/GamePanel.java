@@ -1,10 +1,11 @@
 package checkers.gui.panels;
 
+import checkers.gui.Difficulty;
 import checkers.gui.GUI;
+import checkers.gui.Options;
 import checkers.gui.board.BoardPosition;
 import checkers.gui.board.GameBoard;
 import checkers.gui.board.Move;
-import checkers.gui.board.MovesAndScores;
 import checkers.gui.shapes.Counter;
 
 import javax.swing.*;
@@ -20,20 +21,16 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     private int firstPlayer;
 
     private GameBoard gameBoard;
-    private BoardPosition[][] boardPositions;
+    private GameBoard evaluationBoard;
 
     private boolean isGameFinished = false;
     private int selectedCounter = -1;
-    private int selectedCounterX;
-    private int selectedCounterY;
     private int playerScore = 0;
     private int AIScore = 0;
 
-    private Vector<MovesAndScores> successorEvaluations;
-
     private JLabel lblInfo;
 
-    public GamePanel(int firstPlayer) {
+    public GamePanel() {
         setPreferredSize(new Dimension(GUI.WIDTH, GUI.HEIGHT + 16));
         setLayout(null);
 
@@ -44,7 +41,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
         createGameBoard();
 
-        this.firstPlayer = firstPlayer;
+        firstPlayer = Options.firstPlayer;
 
         if (firstPlayer == 1)
             AIPlay();
@@ -54,8 +51,8 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     private void createGameBoard() {
-        gameBoard = new GameBoard();
-        boardPositions = gameBoard.getBoardPositions();
+        gameBoard = new GameBoard(false);
+//        boardPositions = gameBoard.getBoardPositions();
     }
 
     public void paintComponent(Graphics g) {
@@ -69,222 +66,68 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         repaint();
     }
 
-    private void AIPlay() {
-        Random random = new Random();
-        System.out.println();
+    private void makeMinimaxMove() {
+        System.out.println("NEW MAKE MINIMAX MOVE");
 
-        Vector<Move> validMoves = getValidAIMoves();
+        evaluationBoard = new GameBoard(true);
+        evaluationBoard.setUpEvalBoard(gameBoard.getPlayerCounters(), gameBoard.getAICounters());
+        System.out.println("Evaluation board: " + evaluationBoard);
+
+        System.out.println(evaluationBoard.minimax(0, 1));
+        System.out.println("Best move: " + evaluationBoard.getBestMove() + ", counter: " + evaluationBoard.getBestMove().getCounter());
+
+        Move bestMove = evaluationBoard.getBestMove();
+        Counter bestMoveCounter = bestMove.getCounter();
+        int bestMoveCounterX = bestMoveCounter.getBoardPosition().getX();
+        int bestMoveCounterY = bestMoveCounter.getBoardPosition().getY();
+        Counter counterToAssign = gameBoard.getBoardPositions()[bestMoveCounterY][bestMoveCounterX].getCounter();
+        Move moveToMake = new Move(bestMove.getBoardX(), bestMove.getBoardY(), counterToAssign);
+        gameBoard.makeMove(moveToMake);
+
+        /***
+         evaluationBoard = new GameBoard(true);
+         evaluationBoard.setUpEvalBoard(gameBoard.getPlayerCounters(), gameBoard.getAICounters());
+
+         // Start evaluation
+         evaluationBoard.startEvaluations(1);
+         // Get the best move
+         Move bestMove = evaluationBoard.getBestMove();
+         gameBoard.makeMove(bestMove);
+         **/
+
+//        Move bestMove = simBoard.getBestMove();
+//        int counterLocX = bestMove.getCounter().getBoardPosition().getX();
+//        int counterLocY = bestMove.getCounter().getBoardPosition().getY();
+//        System.out.println("\tBest move: " + bestMove);
+//        Counter gameBoardCounter = gameBoard.getBoardPositions()[counterLocY][counterLocX].getCounter();
+//        Move gameBoardMove = new Move(bestMove.getBoardX(), bestMove.getBoardY(), gameBoardCounter);
+//
+//        gameBoard.makeMove(bestMove);
+//        gameBoard.hasAIWon();
+    }
+
+    private void makeRandomMove() {
+        Random random = new Random();
 
         // Check if the AI is able to make a capture
-        for (int i = 0; i < validMoves.size(); i++) {
-            if (validMoves.get(i).isCaptureMove()) {
-                makeMove(validMoves.get(i));
+        Vector<Move> validMoves = gameBoard.getValidAIMoves();
+        for (Move validMove : validMoves) {
+            if (validMove.isCaptureMove()) {
+                gameBoard.makeMove(validMove);
                 return;
             }
         }
 
-        // If not able to make a capture, make a random move.
+        // If unable to make a capture, make a random move.
         int r = random.nextInt(validMoves.size());
-        makeMove(validMoves.get(r));
-
-        hasAIWon();
+        gameBoard.makeMove(validMoves.get(r));
     }
 
-    private boolean checkForWinner() {
-        String message = "";
-        boolean winner = false;
-
-        if (hasHumanWon()) {
-            message = "Human has won!";
-            winner = true;
-        } else if (hasAIWon()) {
-            message = "AI has won!";
-            winner = true;
-        }
-
-        if (winner) {
-            JOptionPane.showMessageDialog(this, message);
-            GUI.changePanel(new MenuPanel());
-        }
-
-        return winner;
-    }
-
-    private boolean hasHumanWon() {
-        // Check if all AI counters have been captured
-        if (gameBoard.getAICounters().size() == 0)
-            return true;
-
-        // Check if AI has no valid moves
-        Vector<Counter> AICounters = gameBoard.getAICounters();
-        Vector<Move> validMoves = new Vector<>();
-
-        for (Counter counter : AICounters)
-            validMoves.addAll(getValidMoves(counter));
-        if (validMoves.isEmpty())
-            return true;
-
-        return false;
-    }
-
-    private boolean hasAIWon() {
-        // Check if all player counters have been captured
-        if (gameBoard.getPlayerCounters().isEmpty())
-            return true;
-
-        // Check if player has no valid moves
-        Vector<Counter> playerCounters = gameBoard.getPlayerCounters();
-        Vector<Move> validMoves = new Vector<>();
-        for (Counter counter : playerCounters)
-            validMoves.addAll(getValidMoves(counter));
-        if (validMoves.isEmpty())
-            return true;
-
-        return false;
-    }
-
-    private boolean isMoveValid(Move move) {
-        boolean isValid = false;
-        Counter counter = move.getCounter();
-
-        // Check to see if the move is valid
-        // Get valid moves and see if move is in the list?
-
-        Vector<Move> validMoves = getValidPlayerMoves(counter);
-        for (int i = 0; i < validMoves.size(); i++) {
-            if (validMoves.get(i).equals(move)) {
-                isValid = true;
-                if (validMoves.get(i).isCaptureMove()) move.setCaptureMove(true, validMoves.get(i).getCapturedCounter());
-            }
-        }
-
-        if (isValid) {
-            makeMove(move);
-            lblInfo.setForeground(new Color(10, 175, 10));
-            lblInfo.setText("Move valid");
-        } else {
-            // Move counter back to original location
-            counter.x = selectedCounterX;
-            counter.y = selectedCounterY;
-            lblInfo.setForeground(Color.red);
-            lblInfo.setText("Move invalid");
-        }
-        return isValid;
-    }
-
-    public void makeMove(Move move) {
-        System.out.println("Making move - " + move);
-
-        Counter counter = move.getCounter();
-        int counterX = counter.getBoardPosition().getX();
-        int counterY = counter.getBoardPosition().getY();
-
-        boardPositions[counterY][counterX].removeCounter();
-        boardPositions[move.getBoardY()][move.getBoardX()].setCounter(counter);
-
-        counter.setBoardPosition(boardPositions[move.getBoardY()][move.getBoardX()]);
-        counter.x = BoardPosition.getPixelX(move.getBoardX());
-        counter.y = BoardPosition.getPixelY(move.getBoardY());
-
-        if (move.isCaptureMove()) {
-            Counter capCounter = move.getCapturedCounter();
-            if (capCounter.getIsKing())
-                counter.setIsKing(true);
-
-            gameBoard.removeCounter(capCounter);
-        }
-    }
-
-    private Vector<Move> getValidMoves(Counter counter) {
-        Vector<Move> validMoves = new Vector<>();
-
-        int boardX = counter.getBoardPosition().getX();
-        int boardY = counter.getBoardPosition().getY();
-        int yDir = counter.getyDir();
-
-        if (counter.getIsKing()) {
-            // TODO - Allow a king to move in either direction.
-            System.out.println("GETTING KING MOVES");
-            if (boardX > 0 && boardY < 7)
-                validMoves.add(new Move(boardX - 1, boardY + 1, counter));
-            if (boardX < 7 && boardY < 7)
-                validMoves.add(new Move(boardX + 1, boardY + 1, counter));
-            if (boardX > 0 && boardY > 0)
-                validMoves.add(new Move(boardX - 1, boardY + -1, counter));
-            if (boardX < 7 && boardY > 0)
-                validMoves.add(new Move(boardX + 1, boardY + -1, counter));
-        } else if (yDir == 1) {
-            if (boardX > 0 && boardY < 7)
-                validMoves.add(new Move(boardX - 1, boardY + yDir, counter));
-            if (boardX < 7 && boardY < 7)
-                validMoves.add(new Move(boardX + 1, boardY + yDir, counter));
-        } else if (yDir == -1) {
-            if (boardX > 0 && boardY > 0)
-                validMoves.add(new Move(boardX - 1, boardY + yDir, counter));
-            if (boardX < 7 && boardY > 0)
-                validMoves.add(new Move(boardX + 1, boardY + yDir, counter));
-        }
-
-        Vector<Move> toBeRemoved = new Vector<>();
-        for (int i = 0; i < validMoves.size(); i++) {
-            Move move = validMoves.get(i);
-
-            if (boardPositions[move.getBoardY()][move.getBoardX()].containsCounter()) {
-                toBeRemoved.add(move);
-
-                // Check if able to capture a counter
-                Counter blockingCounter = boardPositions[move.getBoardY()][move.getBoardX()].getCounter();
-                if (blockingCounter.isAI != counter.isAI) {
-                    int dirX;
-                    int dirY;
-                    if (blockingCounter.getBoardPosition().getX() < counter.getBoardPosition().getX()) dirX = -1;
-                    else dirX = 1;
-                    if (blockingCounter.getBoardPosition().getY() < counter.getBoardPosition().getY()) dirY = -1;
-                    else dirY = 1;
-
-                    if (move.getBoardX() + dirX <= 7 && move.getBoardX() + dirX >= 0 && move.getBoardY() + dirY <= 7 && move.getBoardY() + dirY >= 0) {
-                        if (!boardPositions[move.getBoardY() + dirY][move.getBoardX() + dirX].containsCounter()) {
-                            Move captureMove = new Move(move.getBoardX() + dirX, move.getBoardY() + dirY, counter);
-                            captureMove.setCaptureMove(true, blockingCounter);
-                            validMoves.add(captureMove);
-                        }
-                    }
-                }
-            }
-        }
-
-        validMoves.removeAll(toBeRemoved);
-        toBeRemoved.removeAllElements();
-
-        return validMoves;
-    }
-
-    private Vector<Move> getValidAIMoves() {
-        Vector<Counter> AICounters = gameBoard.getAICounters();
-        Vector<Move> validMoves = new Vector<>();
-
-        for (Counter counter : AICounters)
-            validMoves.addAll(getValidMoves(counter));
-
-        // Print valid moves
-        System.out.println("Valid AI moves:");
-        for (Move move : validMoves)
-            System.out.println("\t" + move);
-
-        return validMoves;
-    }
-
-    private Vector<Move> getValidPlayerMoves(Counter counter) {
-        return getValidMoves(counter);
-    }
-
-    private Vector<Move> getValidPlayerMoves() {
-        Vector<Counter> playerCounters = gameBoard.getPlayerCounters();
-        Vector<Move> validMoves = new Vector<>();
-
-        for (Counter counter : playerCounters)
-            validMoves.addAll(getValidMoves(counter));
-        return validMoves;
+    private void AIPlay() {
+        if (Options.difficulty == Difficulty.Random)
+            makeRandomMove();
+        if (Options.difficulty == Difficulty.minimax)
+            makeMinimaxMove();
     }
 
     @Override
@@ -301,8 +144,9 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
             for (int i = 0; i < counters.size(); i++) {
                 if (counters.get(i).contains(p)) {
                     selectedCounter = i;
-                    selectedCounterX = (int) counters.get(i).x;
-                    selectedCounterY = (int) counters.get(i).y;
+                    gameBoard.selectedCounterX = (int) counters.get(i).x;
+                    gameBoard.selectedCounterY = (int) counters.get(i).y;
+                    gameBoard.selectCounter(counters.get(i));
                 }
             }
         } else {
@@ -310,16 +154,19 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
             Counter counter = counters.get(selectedCounter);
             int[] boardPos = BoardPosition.getBoardPos(p);
             Move move = new Move(boardPos[0], boardPos[1], counter);
-            if (isMoveValid(move)) {
+            if (gameBoard.isMoveValid(move)) {
                 // Check for winner
-                checkForWinner();
+                if (gameBoard.checkForWinner())
+                    return;
 
                 // Make AI move
                 AIPlay();
-                checkForWinner();
+                gameBoard.checkForWinner();
             }
             selectedCounter = -1;
         }
+
+        lblInfo.setText(gameBoard.getUserMessage());
     }
 
     @Override
